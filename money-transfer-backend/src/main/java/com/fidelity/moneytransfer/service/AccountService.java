@@ -8,9 +8,9 @@ import com.fidelity.moneytransfer.domain.TransactionLog;
 
 public interface AccountService {
 
-    Account getAccount(Long accountId);
+    Account getAccount(Long accountId, String requesterUsername, String requesterRole);
 
-    BigDecimal getBalance(Long accountId);
+    BigDecimal getBalance(Long accountId, String requesterUsername, String requesterRole);
 
-    List<TransactionLog> getTransactions(Long accountId);
+    List<TransactionLog> getTransactions(Long accountId, String requesterUsername, String requesterRole);
 }

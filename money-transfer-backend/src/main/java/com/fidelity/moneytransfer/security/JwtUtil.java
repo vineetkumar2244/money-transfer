@@ -20,9 +20,9 @@ public class JwtUtil {
     }
 
     public String generateToken(String username, String role) {
-        // Remove "ROLE_" if present
-        if (role.startsWith("ROLE_")) {
-            role = role.substring(5);
+        // Ensure ROLE_ prefix is always present
+        if (!role.startsWith("ROLE_")) {
+            role = "ROLE_" + role;
         }
 
         return Jwts.builder()
@@ -33,6 +33,7 @@ public class JwtUtil {
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
+
 
 
     public boolean isTokenValid(String token) {

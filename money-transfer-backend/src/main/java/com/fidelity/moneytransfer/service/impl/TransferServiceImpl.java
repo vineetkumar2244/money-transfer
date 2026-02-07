@@ -1,5 +1,7 @@
 package com.fidelity.moneytransfer.service.impl;
 
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,32 +32,42 @@ public class TransferServiceImpl implements TransferService {
     @Transactional
     public TransferResponse transfer(TransferRequest request) {
 
-        // ✅ Idempotency check
+        // 1️⃣ Idempotency check
         transactionLogRepository.findByIdempotencyKey(request.getIdempotencyKey())
                 .ifPresent(t -> {
                     throw new DuplicateTransferException(request.getIdempotencyKey());
                 });
 
-        // ✅ Validate accounts are different
+        // 2️⃣ Validate accounts
         if (request.getFromAccountId().equals(request.getToAccountId())) {
             throw new IllegalArgumentException("Source and destination accounts must be different");
         }
 
-        // 1️⃣ Fetch accounts
+        // 3️⃣ Fetch accounts
         Account fromAccount = accountRepository.findById(request.getFromAccountId())
                 .orElseThrow(() -> new AccountNotFoundException(request.getFromAccountId()));
 
         Account toAccount = accountRepository.findById(request.getToAccountId())
                 .orElseThrow(() -> new AccountNotFoundException(request.getToAccountId()));
 
-        // 2️⃣ Debit/Credit
+        // 4️⃣ Ownership check
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!fromAccount.getOwnerUsername().equals(currentUsername)) {
+            throw new AccessDeniedException("You cannot transfer from another user's account");
+        }
+
+        // 5️⃣ Debit/Credit with balance check
+        if (fromAccount.getBalance().compareTo(request.getAmount()) < 0) {
+            throw new IllegalArgumentException("Insufficient balance in source account");
+        }
+
         fromAccount.debit(request.getAmount());
         toAccount.credit(request.getAmount());
 
         accountRepository.save(fromAccount);
         accountRepository.save(toAccount);
 
-        // 3️⃣ Create transaction log manually
+        // 6️⃣ Transaction log
         TransactionLog log = new TransactionLog(
                 fromAccount.getId(),
                 toAccount.getId(),
@@ -64,10 +76,9 @@ public class TransferServiceImpl implements TransferService {
                 null,
                 request.getIdempotencyKey()
         );
-
         transactionLogRepository.save(log);
 
-        // 4️⃣ Return response manually
+        // 7️⃣ Return response
         return new TransferResponse(
                 log.getId(),
                 "SUCCESS",

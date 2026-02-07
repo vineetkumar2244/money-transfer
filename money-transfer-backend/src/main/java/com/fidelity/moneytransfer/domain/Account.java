@@ -38,78 +38,53 @@ public class Account {
 
     private LocalDateTime lastUpdated;
 
-    // ✅ REQUIRED by JPA
-    public Account() {
-    }
+    @Column(nullable = false, unique = true)
+    private String username; // owner username
 
-    // Optional convenience constructor
+    public Account() { }
+
     public Account(Long id, String holderName, BigDecimal balance,
-                   AccountStatus status, Integer version, LocalDateTime lastUpdated) {
+                   AccountStatus status, Integer version, LocalDateTime lastUpdated, String username) {
         this.id = id;
         this.holderName = holderName;
         this.balance = balance;
         this.status = status;
         this.version = version;
         this.lastUpdated = lastUpdated;
+        this.username = username;
     }
 
     // ---------- Getters ----------
+    public Long getId() { return id; }
+    public String getHolderName() { return holderName; }
+    public BigDecimal getBalance() { return balance; }
+    public AccountStatus getStatus() { return status; }
+    public Integer getVersion() { return version; }
+    public LocalDateTime getLastUpdated() { return lastUpdated; }
+    public String getUsername() { return username; }
 
-    public Long getId() {
-        return id;
-    }
+    // For TransferService ownership check
+    public String getOwnerUsername() { return username; }
 
-    public String getHolderName() {
-        return holderName;
-    }
-
-    public BigDecimal getBalance() {
-        return balance;
-    }
-
-    public AccountStatus getStatus() {
-        return status;
-    }
-
-    public Integer getVersion() {
-        return version;
-    }
-
-    public LocalDateTime getLastUpdated() {
-        return lastUpdated;
-    }
-
-    // ---------- Setters (keep minimal) ----------
-
-    public void setHolderName(String holderName) {
-        this.holderName = holderName;
-    }
-
-    public void setStatus(AccountStatus status) {
-        this.status = status;
-    }
+    // ---------- Setters ----------
+    public void setHolderName(String holderName) { this.holderName = holderName; }
+    public void setStatus(AccountStatus status) { this.status = status; }
+    public void setUsername(String username) { this.username = username; }
 
     // ---------- Business Logic ----------
-
-    public boolean isActive() {
-        return this.status == AccountStatus.ACTIVE;
-    }
+    public boolean isActive() { return this.status == AccountStatus.ACTIVE; }
 
     public void debit(BigDecimal amount) {
-        if (!isActive()) {
-            throw new AccountNotActiveException(this.id);
-        }
-        if (balance.compareTo(amount) < 0) {
-            throw new InsufficientBalanceException();
-        }
+        if (!isActive()) throw new AccountNotActiveException(this.id);
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) throw new IllegalArgumentException("Debit amount must be positive");
+        if (balance.compareTo(amount) < 0) throw new InsufficientBalanceException();
         this.balance = this.balance.subtract(amount);
         this.lastUpdated = LocalDateTime.now();
     }
 
     public void credit(BigDecimal amount) {
-        if (!isActive()) {
-            throw new AccountNotActiveException(this.id);
-        }
+        if (!isActive()) throw new AccountNotActiveException(this.id);
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) throw new IllegalArgumentException("Credit amount must be positive");
         this.balance = this.balance.add(amount);
         this.lastUpdated = LocalDateTime.now();
     }

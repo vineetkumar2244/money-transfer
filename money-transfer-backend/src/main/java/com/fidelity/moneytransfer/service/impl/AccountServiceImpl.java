@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.fidelity.moneytransfer.domain.Account;
 import com.fidelity.moneytransfer.domain.TransactionLog;
+import com.fidelity.moneytransfer.exception.AccessDeniedException;
 import com.fidelity.moneytransfer.exception.AccountNotFoundException;
 import com.fidelity.moneytransfer.repository.AccountRepository;
 import com.fidelity.moneytransfer.repository.TransactionLogRepository;
@@ -18,7 +19,6 @@ public class AccountServiceImpl implements AccountService {
     private final AccountRepository accountRepository;
     private final TransactionLogRepository transactionLogRepository;
 
-    // ✅ Manual constructor (Spring will inject automatically)
     public AccountServiceImpl(AccountRepository accountRepository,
                               TransactionLogRepository transactionLogRepository) {
         this.accountRepository = accountRepository;
@@ -26,21 +26,30 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public Account getAccount(Long accountId) {
-        return accountRepository.findById(accountId)
+    public Account getAccount(Long accountId, String requesterUsername, String requesterRole) {
+        Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AccountNotFoundException(accountId));
+
+        if ("ROLE_USER".equals(requesterRole) && !account.getUsername().equals(requesterUsername)) {
+            throw new AccessDeniedException("Users can only access their own account");
+        }
+
+        return account;
     }
 
     @Override
-    public BigDecimal getBalance(Long accountId) {
-        return getAccount(accountId).getBalance();
+    public BigDecimal getBalance(Long accountId, String requesterUsername, String requesterRole) {
+        return getAccount(accountId, requesterUsername, requesterRole).getBalance();
     }
 
     @Override
-    public List<TransactionLog> getTransactions(Long accountId) {
+    public List<TransactionLog> getTransactions(Long accountId, String requesterUsername, String requesterRole) {
+        // Verify access first
+        getAccount(accountId, requesterUsername, requesterRole);
+
         return transactionLogRepository.findAll()
                 .stream()
-                .filter(t -> t.getFromAccountId().equals(accountId)
+                .filter(t -> t.getFromAccountId().equals(accountId) 
                           || t.getToAccountId().equals(accountId))
                 .toList();
     }
