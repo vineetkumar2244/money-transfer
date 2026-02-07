@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fidelity.moneytransfer.domain.Account;
 import com.fidelity.moneytransfer.domain.TransactionLog;
+import com.fidelity.moneytransfer.dto.AccountResponse;
 import com.fidelity.moneytransfer.service.AccountService;
 
 @RestController
@@ -24,8 +24,8 @@ public class AccountController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Account> getAccount(@PathVariable Long id) {
-        return ResponseEntity.ok(accountService.getAccount(id));
+    public ResponseEntity<AccountResponse> getAccount(@PathVariable Long id) {
+        return ResponseEntity.ok(AccountResponse.fromEntity(accountService.getAccount(id)));
     }
 
     @GetMapping("/{id}/balance")
