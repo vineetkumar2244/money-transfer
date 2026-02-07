@@ -1,0 +1,17 @@
+# Eclipse workspace files
+/.metadata/
+/bin/
+/target/
+/.settings/
+/.classpath
+/.project
+
+# Gradle or Maven
+/build/
+.gradle/
+/out/
+*.iml
+
+# OS-specific
+Thumbs.db
+.DS_Store
